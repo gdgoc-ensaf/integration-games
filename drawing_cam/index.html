@@ -7,12 +7,14 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>GDG ENSAF — Drawing Cam</title>
+  <link rel="preload" href="../fonts/3f43e613a4176decfb0a.woff2" as="font" type="font/woff2" crossorigin>
+  <link href="../fonts/camera.css" rel="stylesheet">
+  <link rel="icon" type="image/svg+xml" href="../favicon.svg">
   <link rel="stylesheet" href="style.css">
   <script src="theme.js"></script>
   
-  <!-- MediaPipe Hands & Camera Utils: Local vendor with CDN fallback -->
-  <script src="vendor/mediapipe/camera_utils.js" onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js'"></script>
-  <script src="vendor/mediapipe/hands.js" onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js'"></script>
+  <!-- MediaPipe Hands: Local vendor with CDN fallback -->
+  <script defer src="../puzzle_cam/vendor/mediapipe/hands.js" onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js'"></script>
 </head>
 <body>
   <div id="app-container">
@@ -39,7 +41,7 @@
             <polyline points="12 19 5 12 12 5"></polyline>
           </svg>
         </a>
-        <img src="logo.png" alt="GDG ENSAF Logo" class="gdg-header-logo">
+        <img src="../logo.png" alt="GDG ENSAF Logo" class="gdg-header-logo">
         <div class="brand-text">
           <span class="brand-title">GDG ENSAF</span>
           <span class="brand-sub">DRAWING CAM</span>
@@ -153,7 +155,7 @@
       <div class="modal-card share-card">
         <div class="modal-header">
           <div class="modal-title-wrap">
-            <img src="logo.png" alt="GDG Logo" class="modal-logo">
+            <img src="../logo.png" alt="GDG Logo" class="modal-logo">
             <h2>Your GDG Drawing Photo!</h2>
           </div>
           <button id="btnCloseShare" class="modal-close-btn">&times;</button>
@@ -207,7 +209,7 @@
       <div class="modal-card">
         <div class="modal-header">
           <div class="modal-title-wrap">
-            <img src="logo.png" alt="GDG Logo" class="modal-logo">
+            <img src="../logo.png" alt="GDG Logo" class="modal-logo">
             <h2>How to Play GDG Drawing Cam</h2>
           </div>
           <button id="btnCloseHelp" class="modal-close-btn">&times;</button>
@@ -252,7 +254,7 @@
     <div id="startScreen" class="start-screen">
       <div class="start-card">
         <div class="start-logo-wrap">
-          <img src="logo.png" alt="GDG ENSAF Logo" class="start-gdg-logo">
+          <img src="../logo.png" alt="GDG ENSAF Logo" class="start-gdg-logo">
         </div>
         <h1>GDG ON CAMPUS</h1>
         <h2>ENSA FEZ — DRAWING CAM</h2>
@@ -263,7 +265,7 @@
     </div>
   </div>
 
-  <script src="app.js"></script>
+  <script defer src="app.js"></script>
 </body>
 </html>
 

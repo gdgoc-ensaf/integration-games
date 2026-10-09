@@ -45,7 +45,7 @@ const btnStartCam = document.getElementById('btnStartCam');
 
 // Preload Official Logo
 const gdgLogo = new Image();
-gdgLogo.src = 'logo.png';
+gdgLogo.src = '../logo.png';
 let isLogoLoaded = false;
 gdgLogo.onload = () => { isLogoLoaded = true; };
 
@@ -59,6 +59,8 @@ let handsDetector = null;
 let isHandsReady = false;
 let airCursor = null; // { x, y, isDrawing }
 let lastHandProcessTime = 0;
+let lastProcessedVideoTime = -1;
+let videoProcessingStarted = false;
 
 // Drawing State
 let currentColor = '#4285f4'; // Google Blue by default
@@ -70,6 +72,9 @@ let showTemplate = true; // Show GDG logo stencil guide by default
 let strokes = []; // Array of completed strokes: { color, width, isEraser, points: [{x,y}] }
 let activeTouchStroke = null;
 let activeAirStroke = null;
+
+// Reuse the exact vector geometry; keep stroke order and eraser compositing intact.
+const strokePaths = new WeakMap();
 
 let capturedExportBlob = null;
 let capturedExportUrl = null;
@@ -184,15 +189,16 @@ async function startCamera() {
 // MediaPipe Hands Setup (for In-the-Air Drawing)
 // -----------------------------------------------------------------------------
 async function initMediaPipe() {
+  if (isHandsReady) return;
   if (typeof Hands === 'undefined') {
     console.warn('Hands library not loaded. Retrying...');
     setTimeout(initMediaPipe, 500);
     return;
   }
 
-  let handsBase = './vendor/mediapipe/';
+  let handsBase = '../puzzle_cam/vendor/mediapipe/';
   try {
-    const probe = await fetch('./vendor/mediapipe/hands.binarypb', { method: 'HEAD' });
+    const probe = await fetch('../puzzle_cam/vendor/mediapipe/hands.binarypb', { method: 'HEAD' });
     if (!probe.ok) handsBase = 'https://cdn.jsdelivr.net/npm/@mediapipe/hands/';
   } catch (e) {
     handsBase = 'https://cdn.jsdelivr.net/npm/@mediapipe/hands/';
@@ -284,12 +290,13 @@ function onHandResults(results) {
 }
 
 async function processVideoFrame() {
-  if (video && video.readyState >= 2) {
+  if (!document.hidden && video && video.readyState >= 2 && video.currentTime !== lastProcessedVideoTime) {
     const now = performance.now();
     try {
       // Run hands inference if ready, not currently touch-dragging, and throttled to ~25fps
       if (isHandsReady && handsDetector && !activeTouchStroke && (now - lastHandProcessTime > 40)) {
         lastHandProcessTime = now;
+        lastProcessedVideoTime = video.currentTime;
         await handsDetector.send({ image: video });
       }
     } catch (e) {}
@@ -422,17 +429,25 @@ function renderStroke(targetCtx, stroke) {
     return;
   }
 
-  targetCtx.beginPath();
-  targetCtx.moveTo(pts[0].x, pts[0].y);
-
-  // Smooth quadratic Bézier curves between points
-  for (let i = 1; i < pts.length - 1; i++) {
-    const xc = (pts[i].x + pts[i + 1].x) / 2;
-    const yc = (pts[i].y + pts[i + 1].y) / 2;
-    targetCtx.quadraticCurveTo(pts[i].x, pts[i].y, xc, yc);
+  let cached = strokePaths.get(stroke);
+  if (!cached || cached.pointCount !== pts.length) {
+    const canAppend = cached && cached.pointCount < pts.length;
+    const basePath = canAppend ? cached.basePath : new Path2D();
+    if (!canAppend) basePath.moveTo(pts[0].x, pts[0].y);
+    // Append only new stable curves while a stroke grows. Its provisional final
+    // line is kept separate so it never becomes part of the saved geometry.
+    const firstCurve = canAppend ? Math.max(1, cached.pointCount - 1) : 1;
+    for (let i = firstCurve; i < pts.length - 1; i++) {
+      const xc = (pts[i].x + pts[i + 1].x) / 2;
+      const yc = (pts[i].y + pts[i + 1].y) / 2;
+      basePath.quadraticCurveTo(pts[i].x, pts[i].y, xc, yc);
+    }
+    const path = new Path2D(basePath);
+    path.lineTo(pts[pts.length - 1].x, pts[pts.length - 1].y);
+    cached = { basePath, path, pointCount: pts.length };
+    strokePaths.set(stroke, cached);
   }
-  targetCtx.lineTo(pts[pts.length - 1].x, pts[pts.length - 1].y);
-  targetCtx.stroke();
+  targetCtx.stroke(cached.path);
   targetCtx.restore();
 }
 
@@ -729,10 +744,19 @@ btnCloseShare.addEventListener('click', () => {
 // UI Control Event Handlers
 // -----------------------------------------------------------------------------
 btnStartCam.addEventListener('click', async () => {
+  if (btnStartCam.disabled) return;
+  btnStartCam.disabled = true;
   initAudio();
-  await startCamera();
-  await initMediaPipe();
-  processVideoFrame();
+  try {
+    await startCamera();
+    await initMediaPipe();
+  } finally {
+    btnStartCam.disabled = false;
+  }
+  if (!videoProcessingStarted) {
+    videoProcessingStarted = true;
+    processVideoFrame();
+  }
 });
 
 btnFlipCam.addEventListener('click', async () => {

@@ -34,9 +34,51 @@
 
   let selectedPaletteColor = 'W';
   let solutionMoves = [];
+  let solutionStartFacelet = null;
   let currentMoveIndex = 0;
   let isAutoPlaying = false;
   let autoPlayTimer = null;
+  let solutionVersion = 0;
+
+  let solverWorker = null;
+  let solverRequestId = 0;
+  const pendingSolves = new Map();
+
+  function solveInBackground(facelet) {
+    // Keep the original engine as a fallback for browsers without workers.
+    if (typeof Worker === 'undefined') {
+      return Promise.resolve(window.min2phase.solve(facelet));
+    }
+    if (!solverWorker) {
+      try {
+        solverWorker = new Worker('solver-worker.js');
+      } catch (error) {
+        return Promise.resolve(window.min2phase.solve(facelet));
+      }
+      solverWorker.onmessage = ({ data }) => {
+        const pending = pendingSolves.get(data.id);
+        if (!pending) return;
+        pendingSolves.delete(data.id);
+        if (data.error) pending.reject(new Error(data.error));
+        else pending.resolve(data.solution);
+      };
+      solverWorker.onerror = (event) => {
+        event.preventDefault();
+        solverWorker.terminate();
+        solverWorker = null;
+        for (const pending of pendingSolves.values()) {
+          try { pending.resolve(window.min2phase.solve(pending.facelet)); }
+          catch (error) { pending.reject(error); }
+        }
+        pendingSolves.clear();
+      };
+    }
+    return new Promise((resolve, reject) => {
+      const id = ++solverRequestId;
+      pendingSolves.set(id, { resolve, reject, facelet });
+      solverWorker.postMessage({ id, facelet });
+    });
+  }
 
   // Camera State
   let cameraStream = null;
@@ -90,8 +132,9 @@
     updateColorCounts();
     setupNetActions();
     setupSolutionControls();
+    setup3DDragControls();
     setupCamera();
-    render3DCube();
+    renderSolutionUI();
   }
 
   // Tabs Switching
@@ -132,6 +175,7 @@
         sticker.dataset.index = i;
 
         sticker.addEventListener('click', () => {
+          clearSolution();
           cubeState[face][i] = selectedPaletteColor;
           sticker.className = `sticker color-${selectedPaletteColor}${i === 4 ? ' center-sticker' : ''}`;
           updateColorCounts();
@@ -162,7 +206,7 @@
 
     if (allNine) {
       statusValidation.className = 'status-msg success';
-      statusValidation.textContent = '✓ Cube is balanced (9 stickers of each color). Ready to solve!';
+      statusValidation.textContent = '✓ Color counts match (9 of each). Solve Cube will check whether this cube is possible.';
     } else {
       statusValidation.className = 'status-msg';
       statusValidation.textContent = '';
@@ -171,6 +215,7 @@
 
   // Reset to Solved State
   function resetSolved() {
+    clearSolution();
     cubeState = {
       'U': Array(9).fill('W'),
       'L': Array(9).fill('O'),
@@ -186,6 +231,7 @@
 
   // Generate Random Scramble
   function generateScramble() {
+    clearSolution();
     if (window.min2phase && typeof window.min2phase.randomCube === 'function') {
       const facelet = window.min2phase.randomCube();
       parseFaceletToState(facelet);
@@ -258,8 +304,45 @@
   }
 
   // Solve Cube
-  function solveCube() {
+  function clearSolution() {
+    solutionVersion++;
+    if (isAutoPlaying) toggleAutoPlay();
+    isAnimatingMove = false;
+    solutionMoves = [];
+    solutionStartFacelet = null;
+    currentMoveIndex = 0;
+    renderSolutionUI();
+  }
+
+  function parseSolverResult(result) {
+    if (typeof result !== 'string') throw new Error('The solver returned an invalid response. Please try again.');
+    const errorMatch = /^Error\s+(\d+)\s*$/i.exec(result.trim());
+    if (errorMatch) {
+      const messages = {
+        1: 'Each color must appear exactly 9 times. Check the stickers in the 2D Net.',
+        2: 'Impossible cube: edge sticker combinations are missing or duplicated. Check the 2D Net.',
+        3: 'Impossible cube: one edge is flipped. Check the scanned colors and face orientation.',
+        4: 'Impossible cube: corner sticker combinations are missing or duplicated. Check the 2D Net.',
+        5: 'Impossible cube: a corner is twisted. Check the scanned colors and face orientation.',
+        6: 'Impossible cube: two pieces are swapped. Check the scanned colors and face orientation.',
+        7: 'No solution was found within the solver move limit. Please try again.',
+        8: 'The solver search limit was reached. Please try again.'
+      };
+      throw new Error(messages[errorMatch[1]] || 'The solver could not solve this cube. Please check the 2D Net.');
+    }
+    const moves = result.trim() ? result.trim().split(/\s+/) : [];
+    if (moves.some(move => !/^[URFDLB](?:2|')?$/.test(move))) {
+      throw new Error('The solver returned invalid moves. Please try again.');
+    }
+    return moves;
+  }
+
+  async function solveCube() {
+    if (btnSolve.disabled) return;
+    btnSolve.disabled = true;
     try {
+      clearSolution();
+      const version = solutionVersion;
       statusValidation.className = 'status-msg';
       statusValidation.textContent = '';
 
@@ -267,18 +350,23 @@
       let solutionRaw = '';
 
       if (window.min2phase && typeof window.min2phase.solve === 'function') {
-        solutionRaw = window.min2phase.solve(facelet);
+        solutionRaw = await solveInBackground(facelet);
       } else {
         throw new Error('Solver engine is still initializing. Please wait a second.');
       }
 
-      if (!solutionRaw || solutionRaw.trim() === '') {
+      // Edits remain responsive while solving; discard results for an old cube.
+      if (version !== solutionVersion || getStateToFacelet() !== facelet) return;
+
+      const moves = parseSolverResult(solutionRaw);
+      if (moves.length === 0) {
         statusValidation.className = 'status-msg success';
         statusValidation.textContent = '🎉 Cube is already completely solved!';
         return;
       }
 
-      solutionMoves = solutionRaw.trim().split(/\s+/).filter(m => m.length > 0);
+      solutionMoves = moves;
+      solutionStartFacelet = facelet;
       currentMoveIndex = 0;
 
       // Switch to solution tab
@@ -286,8 +374,14 @@
       renderSolutionUI();
 
     } catch (err) {
+      clearSolution();
       statusValidation.className = 'status-msg error';
       statusValidation.textContent = `❌ ${err.message}`;
+      if (document.getElementById('tab-solution').classList.contains('active')) {
+        document.querySelector('[data-tab="tab-net"]').click();
+      }
+    } finally {
+      btnSolve.disabled = false;
     }
   }
 
@@ -327,11 +421,12 @@
   function renderSolutionUI() {
     stepTotNum.textContent = solutionMoves.length;
     stepCurNum.textContent = currentMoveIndex;
-    progressFill.style.width = `${(currentMoveIndex / solutionMoves.length) * 100}%`;
+    progressFill.style.width = `${solutionMoves.length ? (currentMoveIndex / solutionMoves.length) * 100 : 0}%`;
 
     btnPrev.disabled = currentMoveIndex === 0;
     btnNext.disabled = currentMoveIndex >= solutionMoves.length;
     btnPlay.disabled = solutionMoves.length === 0;
+    btnResetPlay.disabled = solutionMoves.length === 0;
 
     // Render Ribbon
     ribbonContainer.innerHTML = '';
@@ -340,13 +435,16 @@
       el.className = `ribbon-move${idx === currentMoveIndex ? ' active' : ''}${idx < currentMoveIndex ? ' done' : ''}`;
       el.textContent = m;
       el.addEventListener('click', () => {
-        currentMoveIndex = idx;
-        renderSolutionUI();
+        seekSolution(idx);
       });
       ribbonContainer.appendChild(el);
     });
 
-    if (currentMoveIndex < solutionMoves.length) {
+    if (solutionMoves.length === 0) {
+      moveBadge.textContent = '—';
+      moveName.textContent = 'Ready to solve';
+      moveDesc.textContent = 'Click "Solve Cube" to begin';
+    } else if (currentMoveIndex < solutionMoves.length) {
       const curMove = solutionMoves[currentMoveIndex];
       moveBadge.textContent = curMove;
       const details = getMoveDetails(curMove);
@@ -358,29 +456,69 @@
       moveDesc.textContent = 'All moves completed successfully!';
       if (isAutoPlaying) toggleAutoPlay();
     }
+    render3DCube();
   }
 
-  // Next / Prev Move Actions
+  let isAnimatingMove = false;
+
+  // Next / Prev Move Actions with 3D Turning Animation
   function nextMove() {
-    if (currentMoveIndex < solutionMoves.length) {
-      applyMoveToState(solutionMoves[currentMoveIndex]);
+    if (isAnimatingMove || currentMoveIndex >= solutionMoves.length) return;
+    isAnimatingMove = true;
+    const version = solutionVersion;
+    const move = solutionMoves[currentMoveIndex];
+
+    // Trigger face turn twist animation
+    const faceKey = move[0].toLowerCase();
+    const faceEl = cube3dRoot ? cube3dRoot.querySelector(`.face-3d-${faceKey}`) : null;
+    if (faceEl) {
+      faceEl.style.transition = 'transform 0.22s ease-in-out, filter 0.22s ease';
+      faceEl.style.filter = 'brightness(1.35)';
+      const isCCW = move.includes("'");
+      const is180 = move.includes('2');
+      const angle = is180 ? '180deg' : (isCCW ? '-90deg' : '90deg');
+      faceEl.style.transform += ` rotateZ(${angle})`;
+    }
+
+    setTimeout(() => {
+      if (version !== solutionVersion) return;
+      applyMoveToState(move);
       currentMoveIndex++;
       render3DCube();
       renderNet();
       renderSolutionUI();
-    }
+      isAnimatingMove = false;
+    }, 240);
   }
 
   function prevMove() {
-    if (currentMoveIndex > 0) {
-      currentMoveIndex--;
-      const m = solutionMoves[currentMoveIndex];
-      const invMove = invertMove(m);
+    if (isAnimatingMove || currentMoveIndex <= 0) return;
+    isAnimatingMove = true;
+    const version = solutionVersion;
+    currentMoveIndex--;
+    const m = solutionMoves[currentMoveIndex];
+    const invMove = invertMove(m);
+
+    // Trigger inverse face turn twist animation
+    const faceKey = invMove[0].toLowerCase();
+    const faceEl = cube3dRoot ? cube3dRoot.querySelector(`.face-3d-${faceKey}`) : null;
+    if (faceEl) {
+      faceEl.style.transition = 'transform 0.22s ease-in-out, filter 0.22s ease';
+      faceEl.style.filter = 'brightness(1.35)';
+      const isCCW = invMove.includes("'");
+      const is180 = invMove.includes('2');
+      const angle = is180 ? '180deg' : (isCCW ? '-90deg' : '90deg');
+      faceEl.style.transform += ` rotateZ(${angle})`;
+    }
+
+    setTimeout(() => {
+      if (version !== solutionVersion) return;
       applyMoveToState(invMove);
       render3DCube();
       renderNet();
       renderSolutionUI();
-    }
+      isAnimatingMove = false;
+    }, 240);
   }
 
   function invertMove(m) {
@@ -408,8 +546,19 @@
   }
 
   function resetPlayback() {
+    seekSolution(0);
+  }
+
+  function seekSolution(index) {
+    if (!solutionStartFacelet || index < 0 || index > solutionMoves.length) return;
     if (isAutoPlaying) toggleAutoPlay();
-    currentMoveIndex = 0;
+    // Rebuild the cube from the solve input, including when a turn is in flight.
+    solutionVersion++;
+    isAnimatingMove = false;
+    parseFaceletToState(solutionStartFacelet);
+    for (let i = 0; i < index; i++) applyMoveToState(solutionMoves[i]);
+    currentMoveIndex = index;
+    renderNet();
     renderSolutionUI();
   }
 
@@ -469,17 +618,22 @@
   }
 
   // 3D CSS Rubik's Cube Renderer
-  function render3DCube() {
+  function render3DCube(activeMove = null) {
     if (!cube3dRoot) return;
     cube3dRoot.innerHTML = '';
 
     const faces = ['f', 'b', 'r', 'l', 'u', 'd'];
     const faceKeys = ['F', 'B', 'R', 'L', 'U', 'D'];
+    const activeFace = activeMove ? activeMove[0] : (solutionMoves.length > 0 && currentMoveIndex < solutionMoves.length ? solutionMoves[currentMoveIndex][0] : null);
 
     faces.forEach((f, idx) => {
       const faceKey = faceKeys[idx];
       const faceEl = document.createElement('div');
       faceEl.className = `cube-face-3d face-3d-${f}`;
+
+      if (activeFace && activeFace === faceKey) {
+        faceEl.classList.add('face-turning');
+      }
 
       for (let i = 0; i < 9; i++) {
         const stk = document.createElement('div');
@@ -488,6 +642,84 @@
         faceEl.appendChild(stk);
       }
       cube3dRoot.appendChild(faceEl);
+    });
+  }
+
+  // 3D Orbit Interaction Controller (Drag to rotate & Preset views)
+  const sceneWrapper = document.getElementById('scene-3d-wrapper');
+  let rotX = -22;
+  let rotY = -38;
+  let isDragging = false;
+  let startX = 0;
+  let startY = 0;
+  let baseRotX = -22;
+  let baseRotY = -38;
+
+  function updateCubeTransform(smooth = false) {
+    if (!cube3dRoot) return;
+    if (smooth) {
+      cube3dRoot.style.transition = 'transform 0.35s cubic-bezier(0.2, 0.8, 0.3, 1)';
+      setTimeout(() => {
+        if (cube3dRoot) cube3dRoot.style.transition = '';
+      }, 360);
+    } else {
+      cube3dRoot.style.transition = '';
+    }
+    cube3dRoot.style.transform = `rotateX(${rotX}deg) rotateY(${rotY}deg)`;
+  }
+
+  function setup3DDragControls() {
+    if (!sceneWrapper) return;
+
+    sceneWrapper.addEventListener('pointerdown', (e) => {
+      isDragging = true;
+      startX = e.clientX;
+      startY = e.clientY;
+      baseRotX = rotX;
+      baseRotY = rotY;
+      sceneWrapper.setPointerCapture(e.pointerId);
+    });
+
+    sceneWrapper.addEventListener('pointermove', (e) => {
+      if (!isDragging) return;
+      const dx = e.clientX - startX;
+      const dy = e.clientY - startY;
+      rotY = baseRotY + dx * 0.7;
+      rotX = Math.max(-85, Math.min(85, baseRotX - dy * 0.7));
+      updateCubeTransform(false);
+    });
+
+    const onPointerEnd = (e) => {
+      if (isDragging) {
+        isDragging = false;
+        try { sceneWrapper.releasePointerCapture(e.pointerId); } catch (err) {}
+      }
+    };
+
+    sceneWrapper.addEventListener('pointerup', onPointerEnd);
+    sceneWrapper.addEventListener('pointercancel', onPointerEnd);
+
+    // Preset view angles
+    const viewButtons = [
+      { id: 'btn-view-default', rx: -22, ry: -38 },
+      { id: 'btn-view-front', rx: 0, ry: 0 },
+      { id: 'btn-view-right', rx: 0, ry: -90 },
+      { id: 'btn-view-top', rx: -90, ry: 0 },
+      { id: 'btn-view-back', rx: 0, ry: -180 }
+    ];
+
+    viewButtons.forEach(cfg => {
+      const btn = document.getElementById(cfg.id);
+      if (btn) {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          document.querySelectorAll('.btn-cube-view').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          rotX = cfg.rx;
+          rotY = cfg.ry;
+          updateCubeTransform(true);
+        });
+      }
     });
   }
 
@@ -584,6 +816,7 @@
     }
 
     // Set detected face
+    clearSolution();
     cubeState[curFace] = detected;
     renderNet();
     updateColorCounts();

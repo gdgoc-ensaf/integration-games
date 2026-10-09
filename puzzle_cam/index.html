@@ -7,13 +7,15 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>GDG ENSAF — PUZZLE-CAM</title>
+  <link rel="preload" href="../fonts/3f43e613a4176decfb0a.woff2" as="font" type="font/woff2" crossorigin>
+  <link href="../fonts/camera.css" rel="stylesheet">
+  <link rel="icon" type="image/svg+xml" href="../favicon.svg">
   <link rel="stylesheet" href="style.css">
   <script src="theme.js"></script>
   
-  <!-- MediaPipe Face Mesh, Hands & Camera Utils: Local vendor with CDN fallback -->
-  <script src="vendor/mediapipe/camera_utils.js" onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js'"></script>
-  <script src="vendor/mediapipe/face_mesh.js" onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js'"></script>
-  <script src="vendor/mediapipe/hands.js" onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js'"></script>
+  <!-- MediaPipe Face Mesh, Hands: Local vendor with CDN fallback -->
+  <script defer src="vendor/mediapipe/face_mesh.js" onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js'"></script>
+  <script defer src="vendor/mediapipe/hands.js" onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js'"></script>
 </head>
 <body>
   <div id="app-container">
@@ -40,7 +42,7 @@
             <polyline points="12 19 5 12 12 5"></polyline>
           </svg>
         </a>
-        <img src="logo.png" alt="GDG ENSAF Logo" class="gdg-header-logo">
+        <img src="../logo.png" alt="GDG ENSAF Logo" class="gdg-header-logo">
         <div class="brand-text">
           <span class="brand-title">GDG ENSAF</span>
           <span class="brand-sub">PUZZLE-CAM</span>
@@ -80,6 +82,12 @@
     <div id="instructionBanner" class="instruction-banner">
       <div class="banner-icon" id="bannerIcon">😌</div>
       <div class="banner-text" id="bannerText">Close both eyes to begin 3s countdown!</div>
+    </div>
+
+    <!-- Difficulty Mode Selector (Easy 3x3 vs Hard 4x4) -->
+    <div class="diff-selector" id="diffSelector">
+      <button class="diff-btn active" id="btnDiffEasy" data-grid="3">🟢 3x3 Easy (9 Pcs)</button>
+      <button class="diff-btn" id="btnDiffHard" data-grid="4">🔥 4x4 Hard (16 Pcs)</button>
     </div>
 
     <!-- Countdown Display Overlay -->
@@ -154,7 +162,7 @@
       <div class="modal-card">
         <div class="modal-header">
           <div class="modal-title-wrap">
-            <img src="logo.png" alt="GDG Logo" class="modal-logo">
+            <img src="../logo.png" alt="GDG Logo" class="modal-logo">
             <h2>How to Play PUZZLE-CAM</h2>
           </div>
           <button id="btnCloseHelp" class="modal-close-btn">&times;</button>
@@ -195,11 +203,56 @@
       </div>
     </div>
 
+    <!-- Instagram Story Share Modal -->
+    <div id="shareModal" class="modal-backdrop hidden">
+      <div class="modal-card share-card">
+        <div class="modal-header">
+          <div class="modal-title-wrap">
+            <img src="../logo.png" alt="GDG Logo" class="modal-logo">
+            <h2>Share on Instagram</h2>
+          </div>
+          <button id="btnCloseShare" class="modal-close-btn">&times;</button>
+        </div>
+        <div class="modal-body share-body">
+          <div class="preview-container">
+            <img id="sharePreviewImg" class="share-preview-img" alt="Puzzle Cam Photo Preview">
+          </div>
+          <div class="insta-tag-box">
+            <div class="insta-tag-info">
+              <span class="insta-tag-label">Tag in your story:</span>
+              <span class="insta-tag-code">@gdg.ensaf</span>
+            </div>
+            <button id="btnCopyTag" class="glass-btn btn-sm">📋 Copy</button>
+          </div>
+        </div>
+        <div class="modal-footer share-footer">
+          <button id="btnShareInsta" class="insta-share-btn">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+              <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+            </svg>
+            Share to Instagram Story
+          </button>
+          <div class="share-btn-row">
+            <button id="btnDownloadPhoto" class="glass-btn btn-secondary">📥 Download</button>
+            <button id="btnPlayAgain" class="glass-btn btn-secondary">🔄 Play Again</button>
+          </div>
+          <a href="https://www.instagram.com/gdg.ensaf/" target="_blank" rel="noopener" class="insta-profile-link">
+            Visit @gdg.ensaf on Instagram →
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast Notification for Copied Tag -->
+    <div id="copyToast" class="toast-popup hidden">
+      ✓ Mention <strong>@gdg.ensaf</strong> copied to clipboard!
+    </div>
+
     <!-- Initial Camera Start Permission Prompt overlay -->
     <div id="startScreen" class="start-screen">
       <div class="start-card">
         <div class="start-logo-wrap">
-          <img src="logo.png" alt="GDG ENSAF Logo" class="start-gdg-logo">
+          <img src="../logo.png" alt="GDG ENSAF Logo" class="start-gdg-logo">
         </div>
         <h1>GDG ON CAMPUS</h1>
         <h2>ENSA FEZ — PUZZLE-CAM</h2>
@@ -210,6 +263,6 @@
     </div>
   </div>
 
-  <script src="app.js"></script>
+  <script defer src="app.js"></script>
 </body>
 </html>

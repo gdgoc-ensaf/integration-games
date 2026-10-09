@@ -5,20 +5,55 @@
       "firebase.json",
       ".firebaserc",
       "**/.*",
+      "**/.*/**",
       "**/node_modules/**",
       "**/venv/**",
       "**/__pycache__/**",
       "**/*.py",
       "**/*.pem",
-      "**/*.key"
+      "**/*.key",
+      "**/*.log",
+      "**/*.md",
+      "**/requirements.txt"
     ],
     "headers": [
       {
-        "source": "**/*",
+        "source": "**",
         "headers": [
           {
             "key": "Access-Control-Allow-Origin",
             "value": "*"
+          },
+          {
+            "key": "Cache-Control",
+            "value": "public, max-age=0, must-revalidate"
+          }
+        ]
+      },
+      {
+        "source": "**/vendor/mediapipe/**",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "public, max-age=604800"
+          }
+        ]
+      },
+      {
+        "source": "**/*.@(png|jpeg|jpg|svg|webp)",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "public, max-age=86400"
+          }
+        ]
+      },
+      {
+        "source": "**/*.woff2",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "public, max-age=31536000, immutable"
           }
         ]
       }

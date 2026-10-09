@@ -1,8 +1,9 @@
-/* GDG ENSAF Rubik's Cube Solver 3D — Stylesheet
-   Google Developer Groups Theme (Light & Dark)
-*/
+/* ==========================================================================
+   GDG ENSAF 3D Rubik's Cube Solver — Stylesheet
+   Google Developer Groups on Campus ENSAF Design System (Light & Dark Themes)
+   ========================================================================== */
 
-@import url('https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap');
+
 
 :root,
 html[data-theme="light"] {
@@ -11,6 +12,7 @@ html[data-theme="light"] {
   --gdg-red: #ea4335;
   --gdg-yellow: #fbbc04;
   --gdg-green: #34a853;
+  --gdg-orange: #ff6d00;
 
   --bg-page: linear-gradient(180deg, #bfe4fa 0%, #e2f2fd 35%, #ffffff 100%);
   --bg-body-color: #f8fafd;
@@ -23,6 +25,7 @@ html[data-theme="light"] {
 
   --text-main: #202124;
   --text-sub: #5f6368;
+  --text-light: #80868b;
 
   --tabs-bg: rgba(0, 0, 0, 0.04);
   --tabs-border: rgba(0, 0, 0, 0.06);
@@ -46,13 +49,16 @@ html[data-theme="light"] {
   --progress-wrap-bg: rgba(0, 0, 0, 0.08);
   --ribbon-chip-bg: rgba(0, 0, 0, 0.05);
 
-  /* Rubik's Cube Colors */
+  /* Speedcube Sticker Colors */
   --c-white: #ffffff;
-  --c-yellow: #fbbc04;
-  --c-green: #34a853;
-  --c-blue: #1a73e8;
-  --c-red: #ea4335;
-  --c-orange: #ff6d00;
+  --c-yellow: #ffd500;
+  --c-green: #009b48;
+  --c-blue: #0045ad;
+  --c-red: #b71234;
+  --c-orange: #ff5800;
+
+  --font-family: 'Google Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
 }
 
 html[data-theme="dark"] {
@@ -61,6 +67,7 @@ html[data-theme="dark"] {
   --gdg-red: #f28b82;
   --gdg-yellow: #fdd663;
   --gdg-green: #81c995;
+  --gdg-orange: #ff8f00;
 
   --bg-page: linear-gradient(180deg, #0e1520 0%, #131314 40%, #131314 100%);
   --bg-body-color: #131314;
@@ -73,6 +80,7 @@ html[data-theme="dark"] {
 
   --text-main: #e8eaed;
   --text-sub: #9aa0a6;
+  --text-light: #80868b;
 
   --tabs-bg: rgba(255, 255, 255, 0.05);
   --tabs-border: rgba(255, 255, 255, 0.1);
@@ -96,13 +104,13 @@ html[data-theme="dark"] {
   --progress-wrap-bg: rgba(255, 255, 255, 0.1);
   --ribbon-chip-bg: rgba(255, 255, 255, 0.08);
 
-  /* Rubik's Cube Colors */
+  /* Speedcube Sticker Colors */
   --c-white: #ffffff;
-  --c-yellow: #fbbc04;
-  --c-green: #34a853;
-  --c-blue: #4285f4;
-  --c-red: #ea4335;
-  --c-orange: #ff6d00;
+  --c-yellow: #ffd500;
+  --c-green: #009b48;
+  --c-blue: #0045ad;
+  --c-red: #b71234;
+  --c-orange: #ff5800;
 }
 
 * {
@@ -112,28 +120,106 @@ html[data-theme="dark"] {
   -webkit-tap-highlight-color: transparent;
 }
 
-body {
-  font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background-color: var(--bg-body-color);
-  background-image: var(--bg-page);
-  color: var(--text-main);
+html, body {
+  width: 100%;
   min-height: 100vh;
+  background: var(--bg-page);
+  background-color: var(--bg-body-color);
+  font-family: var(--font-family);
+  color: var(--text-main);
   display: flex;
   flex-direction: column;
   overflow-x: hidden;
-  transition: background 0.3s ease, color 0.3s ease;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-/* Navbar */
+/* ==========================================================================
+   Google 4-Color Floating Ambient Bubbles Layer
+   ========================================================================== */
+.gdg-ambient-wrap {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 0;
+}
+
+.ambient-bubble {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  will-change: transform;
+}
+
+.b-blue {
+  width: 240px;
+  height: 240px;
+  background: radial-gradient(circle, rgba(66, 133, 244, 0.35) 0%, rgba(66, 133, 244, 0) 70%);
+  top: -40px;
+  left: 5%;
+  animation: floatBlue 7s infinite ease-in-out;
+}
+
+.b-red {
+  width: 220px;
+  height: 220px;
+  background: radial-gradient(circle, rgba(234, 67, 53, 0.3) 0%, rgba(234, 67, 53, 0) 70%);
+  bottom: 80px;
+  left: 20%;
+  animation: floatRed 8s infinite ease-in-out;
+}
+
+.b-yellow {
+  width: 200px;
+  height: 200px;
+  background: radial-gradient(circle, rgba(251, 188, 5, 0.35) 0%, rgba(251, 188, 5, 0) 70%);
+  top: 15%;
+  right: 10%;
+  animation: floatYellow 7.5s infinite ease-in-out;
+}
+
+.b-green {
+  width: 250px;
+  height: 250px;
+  background: radial-gradient(circle, rgba(52, 168, 83, 0.3) 0%, rgba(52, 168, 83, 0) 70%);
+  bottom: -40px;
+  right: 5%;
+  animation: floatGreen 8.5s infinite ease-in-out;
+}
+
+@keyframes floatBlue {
+  0%, 100% { transform: scale(1.05) translate3d(0, 0, 0); }
+  50% { transform: scale(1.25) translate3d(16px, 10px, 0); }
+}
+
+@keyframes floatRed {
+  0%, 100% { transform: scale(1.0) translate3d(0, 0, 0); }
+  50% { transform: scale(1.2) translate3d(-14px, -8px, 0); }
+}
+
+@keyframes floatYellow {
+  0%, 100% { transform: scale(1.0) translate3d(0, 0, 0); }
+  50% { transform: scale(1.15) translate3d(12px, -12px, 0); }
+}
+
+@keyframes floatGreen {
+  0%, 100% { transform: scale(1.05) translate3d(0, 0, 0); }
+  50% { transform: scale(1.2) translate3d(-10px, 14px, 0); }
+}
+
+/* ==========================================================================
+   Header Navbar
+   ========================================================================== */
 .navbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 12px 24px;
   background: var(--navbar-bg);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--navbar-border);
+  box-shadow: 0 4px 20px rgba(66, 133, 244, 0.08);
   position: sticky;
   top: 0;
   z-index: 100;
@@ -149,6 +235,7 @@ body {
 .brand-logo {
   height: 38px;
   width: auto;
+  object-fit: contain;
 }
 
 .brand-text h1 {
@@ -161,13 +248,13 @@ body {
 .brand-sub {
   font-size: 0.8rem;
   color: var(--gdg-blue);
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .nav-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
 
 .btn-nav {
@@ -175,19 +262,20 @@ body {
   text-decoration: none;
   font-size: 0.85rem;
   font-weight: 600;
-  padding: 8px 14px;
+  padding: 8px 16px;
   background: var(--btn-nav-bg);
-  border: 1px solid var(--navbar-border);
+  border: 1px solid var(--border-card);
   border-radius: 20px;
-  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+  transition: all 0.2s ease;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s ease;
 }
 
 .btn-nav:hover {
   background: var(--btn-nav-hover);
+  border-color: var(--gdg-blue);
   transform: translateY(-1px);
 }
 
@@ -196,15 +284,19 @@ body {
   height: 38px;
   padding: 0;
   border-radius: 50%;
+  cursor: pointer;
 }
 
-.theme-icon {
-  width: 18px;
-  height: 18px;
+.theme-toggle-btn:hover {
+  transform: rotate(15deg);
 }
 
-/* Main Container */
+/* ==========================================================================
+   Main Container
+   ========================================================================== */
 .main-container {
+  position: relative;
+  z-index: 1;
   flex: 1;
   max-width: 960px;
   width: 100%;
@@ -219,22 +311,25 @@ body {
 .tabs-bar {
   display: flex;
   background: var(--tabs-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   padding: 6px;
-  border-radius: 16px;
+  border-radius: 20px;
   border: 1px solid var(--tabs-border);
+  box-shadow: 0 4px 16px rgba(66, 133, 244, 0.06);
   gap: 6px;
 }
 
 .tab-btn {
   flex: 1;
-  padding: 12px 14px;
+  padding: 11px 14px;
   background: transparent;
   border: none;
   color: var(--text-sub);
   font-family: inherit;
-  font-size: 0.95rem;
-  font-weight: 500;
-  border-radius: 12px;
+  font-size: 0.92rem;
+  font-weight: 600;
+  border-radius: 14px;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -243,36 +338,48 @@ body {
   transition: all 0.2s ease;
 }
 
+.tab-btn:hover {
+  color: var(--text-main);
+  background: rgba(0, 0, 0, 0.04);
+}
+
 .tab-btn.active {
   background: var(--gdg-blue);
   color: #ffffff;
-  font-weight: 700;
-  box-shadow: 0 4px 14px rgba(66, 133, 244, 0.35);
+  box-shadow: 0 4px 14px rgba(26, 115, 232, 0.3);
 }
 
-/* Tab Content */
 .tab-content {
   display: none;
 }
 
 .tab-content.active {
   display: block;
+  animation: fadeIn 0.25s ease-out;
 }
 
-/* Cards */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ==========================================================================
+   Cards
+   ========================================================================== */
 .card {
   background: var(--bg-card);
-  border: 1px solid var(--border-card);
-  border-radius: 20px;
-  padding: 24px;
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border-card);
+  border-radius: 24px;
+  padding: 24px;
   box-shadow: var(--card-shadow);
   transition: background 0.3s ease, border-color 0.3s ease;
 }
 
 .card-header h2 {
   font-size: 1.35rem;
+  font-weight: 700;
   margin-bottom: 6px;
   color: var(--text-main);
 }
@@ -281,9 +388,12 @@ body {
   font-size: 0.9rem;
   color: var(--text-sub);
   margin-bottom: 20px;
+  line-height: 1.45;
 }
 
-/* Palette */
+/* ==========================================================================
+   Color Palette
+   ========================================================================== */
 .palette-container {
   display: flex;
   flex-direction: column;
@@ -291,13 +401,14 @@ body {
   margin-bottom: 24px;
   background: var(--palette-bg);
   padding: 14px;
-  border-radius: 14px;
+  border-radius: 18px;
   border: 1px solid var(--palette-border);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
 }
 
 .palette-label {
-  font-size: 0.85rem;
-  font-weight: 600;
+  font-size: 0.82rem;
+  font-weight: 700;
   color: var(--text-sub);
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -313,15 +424,16 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 14px;
+  padding: 7px 14px;
   background: var(--palette-chip-bg);
   border: 2px solid transparent;
-  border-radius: 24px;
+  border-radius: 20px;
   color: var(--text-main);
   font-family: inherit;
   font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
   transition: all 0.2s ease;
 }
 
@@ -331,15 +443,23 @@ body {
   border-radius: 50%;
   background: var(--chip-color);
   border: 1px solid var(--chip-border, rgba(0, 0, 0, 0.2));
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+}
+
+.palette-chip:hover {
+  transform: translateY(-1px);
 }
 
 .palette-chip.active {
   background: var(--palette-chip-active);
-  border-color: var(--chip-color);
-  transform: scale(1.05);
+  border-color: var(--gdg-blue);
+  box-shadow: 0 4px 12px rgba(26, 115, 232, 0.18);
+  transform: scale(1.04);
 }
 
-/* Cube Net */
+/* ==========================================================================
+   2D Unfolded Cube Net
+   ========================================================================== */
 .cube-net-wrapper {
   overflow-x: auto;
   padding: 10px 0;
@@ -360,62 +480,72 @@ body {
 }
 
 .face-spacer {
-  width: 78px;
-  height: 78px;
+  width: 82px;
+  height: 82px;
 }
 
 .face-box {
+  width: 82px;
+  background: var(--net-grid-bg);
+  border-radius: 12px;
+  padding: 5px;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border: 1px solid var(--net-grid-border);
 }
 
 .face-title {
   font-size: 0.65rem;
   font-weight: 700;
-  color: var(--text-sub);
-  text-transform: uppercase;
+  color: #e8eaed;
+  text-align: center;
+  white-space: nowrap;
 }
 
 .face-grid {
   display: grid;
-  grid-template-columns: repeat(3, 24px);
-  grid-template-rows: repeat(3, 24px);
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
   gap: 3px;
-  background: var(--net-grid-bg);
-  padding: 3px;
-  border-radius: 6px;
-  border: 1px solid var(--net-grid-border);
+  width: 100%;
+  aspect-ratio: 1 / 1;
 }
 
 .sticker {
-  width: 24px;
-  height: 24px;
-  border-radius: 3px;
+  width: 100%;
+  height: 100%;
+  border-radius: 4px;
   cursor: pointer;
-  border: 1px solid rgba(0, 0, 0, 0.15);
-  transition: transform 0.1s ease, filter 0.1s ease;
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.35), inset 0 -1px 2px rgba(0, 0, 0, 0.25);
+  transition: transform 0.12s ease, filter 0.12s ease;
 }
 
 .sticker:hover {
-  transform: scale(1.15);
-  filter: brightness(1.2);
+  transform: scale(1.14);
+  filter: brightness(1.15);
   z-index: 2;
 }
 
-.sticker.color-W { background-color: var(--c-white); border-color: rgba(0, 0, 0, 0.25); }
-.sticker.color-Y { background-color: var(--c-yellow); }
-.sticker.color-G { background-color: var(--c-green); }
-.sticker.color-B { background-color: var(--c-blue); }
-.sticker.color-R { background-color: var(--c-red); }
-.sticker.color-O { background-color: var(--c-orange); }
-
 .sticker.center-sticker {
-  box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.4);
+  box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.45);
 }
 
-/* Net Actions */
+/* ==========================================================================
+   Rubik's Cube Sticker Colors (Applies to both 2D Net & 3D Cube)
+   ========================================================================== */
+.color-W, .sticker.color-W, .sticker-3d.color-W { background-color: var(--c-white) !important; }
+.color-Y, .sticker.color-Y, .sticker-3d.color-Y { background-color: var(--c-yellow) !important; }
+.color-G, .sticker.color-G, .sticker-3d.color-G { background-color: var(--c-green) !important; }
+.color-B, .sticker.color-B, .sticker-3d.color-B { background-color: var(--c-blue) !important; }
+.color-R, .sticker.color-R, .sticker-3d.color-R { background-color: var(--c-red) !important; }
+.color-O, .sticker.color-O, .sticker-3d.color-O { background-color: var(--c-orange) !important; }
+
+/* ==========================================================================
+   Buttons
+   ========================================================================== */
 .net-actions {
   display: flex;
   flex-wrap: wrap;
@@ -424,13 +554,13 @@ body {
 }
 
 .btn {
-  padding: 12px 20px;
-  border-radius: 12px;
-  border: none;
+  padding: 11px 20px;
+  border-radius: 20px;
   font-family: inherit;
-  font-size: 0.95rem;
+  font-size: 0.92rem;
   font-weight: 600;
   cursor: pointer;
+  border: none;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -438,86 +568,104 @@ body {
   transition: all 0.2s ease;
 }
 
-.btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
+.btn:active {
+  transform: scale(0.97);
 }
 
 .btn-primary {
   background: var(--gdg-blue);
-  color: #fff;
-}
-.btn-primary:hover:not(:disabled) {
-  background: var(--gdg-blue-light);
-  transform: translateY(-2px);
+  color: #ffffff;
+  box-shadow: 0 4px 14px rgba(26, 115, 232, 0.3);
 }
 
-.btn-glow {
-  box-shadow: 0 4px 18px rgba(66, 133, 244, 0.4);
+.btn-primary:hover:not(:disabled) {
+  opacity: 0.92;
+  box-shadow: 0 6px 18px rgba(26, 115, 232, 0.4);
+  transform: translateY(-1px);
 }
 
 .btn-secondary {
   background: var(--btn-secondary-bg);
-  color: var(--text-main);
   border: 1px solid var(--border-card);
+  color: var(--text-main);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
 }
+
 .btn-secondary:hover:not(:disabled) {
   background: var(--btn-secondary-hover);
 }
 
 .btn-warning {
-  background: rgba(251, 188, 4, 0.18);
-  color: var(--gdg-yellow);
-  border: 1px solid rgba(251, 188, 4, 0.4);
+  background: var(--gdg-yellow);
+  color: #202124;
+  box-shadow: 0 4px 12px rgba(251, 188, 4, 0.3);
 }
+
 .btn-warning:hover:not(:disabled) {
-  background: rgba(251, 188, 4, 0.28);
+  opacity: 0.92;
+  transform: translateY(-1px);
 }
 
 .btn-outline {
   background: transparent;
-  border: 1px solid var(--border-card);
-  color: var(--text-main);
+  border: 1.5px solid var(--gdg-blue);
+  color: var(--gdg-blue);
 }
+
 .btn-outline:hover:not(:disabled) {
-  background: var(--btn-secondary-bg);
+  background: rgba(26, 115, 232, 0.08);
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
 }
 
 .status-msg {
   margin-top: 14px;
-  font-size: 0.9rem;
-  padding: 10px 14px;
-  border-radius: 10px;
+  padding: 10px 16px;
+  border-radius: 12px;
+  font-size: 0.88rem;
+  font-weight: 500;
   display: none;
 }
+
 .status-msg.error {
   display: block;
-  background: rgba(234, 67, 53, 0.15);
-  border: 1px solid rgba(234, 67, 53, 0.4);
-  color: #ea4335;
-}
-.status-msg.success {
-  display: block;
-  background: rgba(52, 168, 83, 0.15);
-  border: 1px solid rgba(52, 168, 83, 0.4);
-  color: #34a853;
+  background: rgba(234, 67, 53, 0.1);
+  border: 1px solid rgba(234, 67, 53, 0.3);
+  color: var(--gdg-red);
 }
 
-/* Camera Viewport */
+.status-msg.success {
+  display: block;
+  background: rgba(52, 168, 83, 0.12);
+  border: 1px solid rgba(52, 168, 83, 0.3);
+  color: var(--gdg-green);
+}
+
+/* ==========================================================================
+   Camera Viewport
+   ========================================================================== */
 .scan-guide {
-  background: rgba(66, 133, 244, 0.08);
-  border: 1px solid rgba(66, 133, 244, 0.25);
-  padding: 14px;
-  border-radius: 12px;
+  background: rgba(26, 115, 232, 0.08);
+  border: 1px solid rgba(26, 115, 232, 0.25);
+  padding: 14px 18px;
+  border-radius: 16px;
   margin-bottom: 16px;
 }
+
 .guide-badge {
   font-size: 1rem;
   color: var(--gdg-blue);
+  font-weight: 700;
   margin-bottom: 4px;
 }
+
 .guide-hint {
-  font-size: 0.85rem;
+  font-size: 0.88rem;
   color: var(--text-sub);
 }
 
@@ -527,10 +675,11 @@ body {
   max-width: 480px;
   height: 360px;
   margin: 0 auto 16px;
-  background: #000;
-  border-radius: 16px;
+  background: #111;
+  border-radius: 20px;
   overflow: hidden;
   border: 2px solid var(--border-card);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -591,31 +740,45 @@ body {
   gap: 4px;
   padding: 6px;
   background: var(--palette-chip-bg);
-  border-radius: 8px;
-  font-size: 0.7rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
   color: var(--text-sub);
-  border: 1px solid transparent;
+  border: 1px solid var(--border-card);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
 }
 
 .scanned-thumb.active {
   border-color: var(--gdg-blue);
-  background: rgba(66, 133, 244, 0.15);
+  background: rgba(26, 115, 232, 0.08);
+  font-weight: 700;
+  color: var(--gdg-blue);
 }
 
-/* 3D Cube Visualizer */
+/* ==========================================================================
+   3D Rubik's Cube Visualizer & Controller
+   ========================================================================== */
 .scene-3d-wrapper {
+  position: relative;
   width: 100%;
-  height: 260px;
-  perspective: 900px;
+  height: 280px;
+  perspective: 950px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 20px;
+  margin-bottom: 8px;
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+}
+
+.scene-3d-wrapper:active {
+  cursor: grabbing;
 }
 
 .cube-3d-stage {
-  width: 160px;
-  height: 160px;
+  width: 168px;
+  height: 168px;
   position: relative;
   transform-style: preserve-3d;
 }
@@ -626,46 +789,145 @@ body {
   position: absolute;
   transform-style: preserve-3d;
   transform: rotateX(-22deg) rotateY(-38deg);
-  transition: transform 0.4s ease;
+  transition: transform 0.12s ease-out;
 }
 
 .cube-face-3d {
   position: absolute;
-  width: 160px;
-  height: 160px;
+  width: 168px;
+  height: 168px;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   grid-template-rows: repeat(3, 1fr);
-  gap: 4px;
-  background: #111;
-  padding: 4px;
-  border-radius: 8px;
-  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.8);
+  gap: 5px;
+  background: #1b1c1e; /* Sleek matte speedcube body */
+  padding: 5px;
+  border-radius: 12px;
+  box-shadow: 
+    inset 0 0 10px rgba(0, 0, 0, 0.9),
+    0 4px 16px rgba(0, 0, 0, 0.2);
+  backface-visibility: hidden;
+  transition: filter 0.25s ease, box-shadow 0.25s ease;
 }
 
-.cube-face-3d .sticker-3d {
-  border-radius: 4px;
-  box-shadow: inset 0 0 4px rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(0, 0, 0, 0.2);
+/* 3D Realistic Lighting across faces */
+.face-3d-u { 
+  transform: rotateX(90deg) translateZ(84px); 
+  filter: brightness(1.12);
+}
+.face-3d-f { 
+  transform: translateZ(84px); 
+  filter: brightness(1.0);
+}
+.face-3d-r { 
+  transform: rotateY(90deg) translateZ(84px); 
+  filter: brightness(0.92);
+}
+.face-3d-l { 
+  transform: rotateY(-90deg) translateZ(84px); 
+  filter: brightness(0.85);
+}
+.face-3d-b { 
+  transform: rotateY(180deg) translateZ(84px); 
+  filter: brightness(0.80);
+}
+.face-3d-d { 
+  transform: rotateX(-90deg) translateZ(84px); 
+  filter: brightness(0.72);
 }
 
-/* 3D Transforms for standard cube faces */
-.face-3d-f { transform: translateZ(80px); }
-.face-3d-b { transform: rotateY(180deg) translateZ(80px); }
-.face-3d-r { transform: rotateY(90deg) translateZ(80px); }
-.face-3d-l { transform: rotateY(-90deg) translateZ(80px); }
-.face-3d-u { transform: rotateX(90deg) translateZ(80px); }
-.face-3d-d { transform: rotateX(-90deg) translateZ(80px); }
+/* Highlighting the active turning face */
+.cube-face-3d.face-turning {
+  box-shadow: 
+    0 0 0 3px var(--gdg-yellow),
+    0 0 24px rgba(251, 188, 4, 0.65);
+  filter: brightness(1.22) !important;
+  z-index: 10;
+}
 
-/* Move Card */
+/* 3D Speedcube Sticker Enhancements */
+.sticker-3d {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 6px;
+  box-shadow: 
+    inset 0 1px 2px rgba(255, 255, 255, 0.45),
+    inset 0 -1px 2px rgba(0, 0, 0, 0.35),
+    0 2px 4px rgba(0, 0, 0, 0.25);
+  transition: background-color 0.2s ease;
+  overflow: hidden;
+}
+
+/* Subtle glossy reflection highlight on each sticker */
+.sticker-3d::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 52%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.35) 0%, rgba(255, 255, 255, 0) 100%);
+  border-radius: 6px 6px 0 0;
+  pointer-events: none;
+}
+
+/* Quick 3D View Angle Selectors Bar */
+.cube-controls-bar {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+
+.btn-cube-view {
+  padding: 6px 14px;
+  font-family: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  border: 1px solid var(--border-card);
+  background: var(--btn-secondary-bg);
+  color: var(--text-sub);
+  border-radius: 16px;
+  cursor: pointer;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  transition: all 0.18s ease;
+}
+
+.btn-cube-view:hover {
+  background: var(--btn-secondary-hover);
+  color: var(--gdg-blue);
+  border-color: var(--gdg-blue);
+}
+
+.btn-cube-view.active {
+  background: var(--gdg-blue);
+  color: #ffffff;
+  border-color: var(--gdg-blue);
+  box-shadow: 0 2px 8px rgba(26, 115, 232, 0.25);
+}
+
+.scene-drag-hint {
+  font-size: 0.78rem;
+  color: var(--text-light);
+  text-align: center;
+  margin-bottom: 16px;
+  font-weight: 500;
+}
+
+/* ==========================================================================
+   Move Instruction Card & Playback
+   ========================================================================== */
 .move-card {
   background: var(--move-card-bg);
   border: 1px solid var(--move-card-border);
-  border-radius: 16px;
+  border-radius: 20px;
   padding: 20px;
   display: flex;
   flex-direction: column;
   gap: 16px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
 }
 
 .move-badge-container {
@@ -675,28 +937,30 @@ body {
 }
 
 .move-badge {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 2.2rem;
   font-weight: 700;
   color: var(--gdg-yellow);
-  background: rgba(251, 188, 4, 0.15);
-  border: 2px solid rgba(251, 188, 4, 0.4);
+  background: rgba(251, 188, 4, 0.18);
+  border: 2px solid rgba(251, 188, 4, 0.6);
   width: 72px;
   height: 72px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 16px;
+  border-radius: 18px;
+  box-shadow: 0 2px 8px rgba(251, 188, 4, 0.15);
 }
 
 .move-name {
-  font-size: 1.2rem;
+  font-size: 1.15rem;
   font-weight: 700;
   color: var(--text-main);
+  margin-bottom: 3px;
 }
 
 .move-desc {
-  font-size: 0.9rem;
+  font-size: 0.88rem;
   color: var(--text-sub);
 }
 
@@ -711,13 +975,14 @@ body {
 .progress-bar-fill {
   height: 100%;
   background: linear-gradient(90deg, var(--gdg-blue), var(--gdg-green));
-  transition: width 0.2s ease;
+  transition: width 0.25s ease;
 }
 
 .progress-label {
   font-size: 0.85rem;
   color: var(--text-sub);
   text-align: right;
+  font-weight: 500;
 }
 
 .playback-controls {
@@ -739,34 +1004,48 @@ body {
 }
 
 .ribbon-move {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.95rem;
+  font-family: var(--font-mono);
+  font-size: 0.92rem;
   font-weight: 700;
   padding: 6px 12px;
   background: var(--ribbon-chip-bg);
-  border-radius: 8px;
+  border-radius: 10px;
   color: var(--text-sub);
   cursor: pointer;
   border: 1px solid var(--border-card);
+  transition: all 0.18s ease;
+}
+
+.ribbon-move:hover {
+  background: rgba(26, 115, 232, 0.12);
+  color: var(--gdg-blue);
 }
 
 .ribbon-move.active {
   background: var(--gdg-blue);
-  color: #fff;
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(26, 115, 232, 0.35);
   border-color: var(--gdg-blue);
-  box-shadow: 0 2px 8px rgba(66, 133, 244, 0.4);
 }
 
 .ribbon-move.done {
-  opacity: 0.5;
+  opacity: 0.55;
+  background: rgba(52, 168, 83, 0.15);
+  color: var(--gdg-green);
 }
 
-/* Footer */
+/* ==========================================================================
+   Footer
+   ========================================================================== */
 .footer {
   text-align: center;
   padding: 24px;
   font-size: 0.85rem;
   color: var(--text-sub);
   border-top: 1px solid var(--border-card);
+  background: var(--navbar-bg);
+  backdrop-filter: blur(8px);
   margin-top: auto;
+  z-index: 1;
 }
+

@@ -2,6 +2,7 @@
 // Cloned exactly from GDGC-WEBSITE (gdgensaf.web.app)
 (function() {
   'use strict';
+  const isWorker = typeof document === 'undefined';
 
   const VERT = `attribute vec2 a_position;
   void main() {
@@ -249,12 +250,15 @@
     timeScale: -1.373
   };
 
-  function initShader() {
-    const canvas = document.getElementById('shader-canvas');
+  async function initShader(canvas, viewport, initialTheme) {
     if (!canvas) return;
 
     const gl = canvas.getContext('webgl', { antialias: false, powerPreference: 'low-power' });
-    if (!gl) return;
+    if (!gl) {
+      if (isWorker) self.postMessage({ type: 'fallback' });
+      return;
+    }
+    const parallelCompile = gl.getExtension('KHR_parallel_shader_compile');
 
     function compile(type, src) {
       const s = gl.createShader(type);
@@ -269,6 +273,16 @@
     gl.attachShader(program, vs);
     gl.attachShader(program, fs);
     gl.linkProgram(program);
+    // Let the driver compile without blocking input or the first page paint.
+    if (parallelCompile) {
+      while (!gl.getProgramParameter(program, parallelCompile.COMPLETION_STATUS_KHR)) {
+        await new Promise(requestAnimationFrame);
+      }
+    }
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+      if (isWorker) self.postMessage({ type: 'fallback' });
+      return;
+    }
     gl.useProgram(program);
 
     const buf = gl.createBuffer();
@@ -289,7 +303,7 @@
       cursor: gl.getUniformLocation(program, 'u_cursor')
     };
 
-    const isInitiallyDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const isInitiallyDark = initialTheme === 'dark';
     let currentColors = (isInitiallyDark ? DARK_COLORS : LIGHT_COLORS).map(c => [...c]);
 
     gl.uniform3fv(uni.colors, new Float32Array(currentColors.flat()));
@@ -298,13 +312,24 @@
     gl.uniform4f(uni.finish, UNIFORMS.hue, UNIFORMS.vignette, UNIFORMS.blur, UNIFORMS.grain);
     gl.uniform4f(uni.transform, UNIFORMS.seed, UNIFORMS.rotate, UNIFORMS.drift, UNIFORMS.oklab);
     gl.uniform4f(uni.cursor, 0, UNIFORMS.cursorEffect, UNIFORMS.cursorStrength, UNIFORMS.cursorRadius);
+    gl.uniform4f(uni.space, UNIFORMS.offsetX, UNIFORMS.offsetY, 0, 0);
 
     const start = performance.now();
+    const colorData = new Float32Array(24);
+    let targetColors = isInitiallyDark ? DARK_COLORS : LIGHT_COLORS;
+    let colorsTransitioning = false;
+    let frameId = null;
+    let hidden = false;
+
+    function updateTheme(theme) {
+      targetColors = theme === 'dark' ? DARK_COLORS : LIGHT_COLORS;
+      colorsTransitioning = true;
+    }
 
     function resize() {
-      const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
-      const w = Math.max(1, Math.round(window.innerWidth * dpr));
-      const h = Math.max(1, Math.round(window.innerHeight * dpr));
+      const dpr = Math.min(viewport.dpr || 1, 1.5);
+      const w = Math.max(1, Math.round(viewport.width * dpr));
+      const h = Math.max(1, Math.round(viewport.height * dpr));
       if (canvas.width !== w || canvas.height !== h) {
         canvas.width = w;
         canvas.height = h;
@@ -313,34 +338,115 @@
     }
 
     function render(now) {
-      resize();
+      frameId = null;
+      if (hidden) return;
 
       // Smooth color transition on theme change
-      const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-      const targetColors = isDark ? DARK_COLORS : LIGHT_COLORS;
-      let hasChanged = false;
-      for (let i = 0; i < 8; i++) {
-        for (let j = 0; j < 3; j++) {
-          const diff = targetColors[i][j] - currentColors[i][j];
-          if (Math.abs(diff) > 0.001) {
-            currentColors[i][j] += diff * 0.08;
-            hasChanged = true;
+      if (colorsTransitioning) {
+        let hasChanged = false;
+        for (let i = 0; i < 8; i++) {
+          for (let j = 0; j < 3; j++) {
+            const diff = targetColors[i][j] - currentColors[i][j];
+            if (Math.abs(diff) > 0.001) {
+              currentColors[i][j] += diff * 0.08;
+              hasChanged = true;
+            }
           }
         }
+        for (let i = 0; i < 8; i++) {
+          colorData.set(currentColors[i], i * 3);
+        }
+        gl.uniform3fv(uni.colors, colorData);
+        colorsTransitioning = hasChanged;
       }
-      gl.uniform3fv(uni.colors, new Float32Array(currentColors.flat()));
 
       gl.uniform4f(uni.scene, canvas.width, canvas.height, ((now - start) / 1000) * UNIFORMS.timeScale, UNIFORMS.colorCount);
-      gl.uniform4f(uni.space, UNIFORMS.offsetX, UNIFORMS.offsetY, 0, 0);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
-      requestAnimationFrame(render);
+      frameId = requestAnimationFrame(render);
     }
 
-    window.addEventListener('resize', resize);
+    function updateVisibility(nextHidden) {
+      hidden = nextHidden;
+      if (hidden) {
+        if (frameId !== null) cancelAnimationFrame(frameId);
+        frameId = null;
+      } else if (frameId === null) {
+        resize();
+        frameId = requestAnimationFrame(render);
+      }
+    }
+    if (isWorker) {
+      self.addEventListener('message', ({ data }) => {
+        if (data.type === 'resize') { viewport = data.viewport; resize(); }
+        if (data.type === 'theme') updateTheme(data.theme);
+        if (data.type === 'visibility') updateVisibility(data.hidden);
+      });
+      // Synchronize changes that occurred during asynchronous compilation.
+      self.postMessage({ type: 'ready' });
+    } else {
+      window.addEventListener('resize', () => { viewport = getViewport(); resize(); });
+      window.addEventListener('themechange', ({ detail }) => updateTheme(detail.theme));
+      document.addEventListener('visibilitychange', () => updateVisibility(document.hidden));
+      updateTheme(document.documentElement.getAttribute('data-theme'));
+      hidden = document.hidden;
+    }
     resize();
-    requestAnimationFrame(render);
+    frameId = requestAnimationFrame(render);
   }
 
-  document.addEventListener('DOMContentLoaded', initShader);
+  function getViewport() {
+    return { width: window.innerWidth, height: window.innerHeight, dpr: window.devicePixelRatio || 1 };
+  }
+
+  function startShader() {
+    let canvas = document.getElementById('shader-canvas');
+    if (!canvas) return;
+    const getTheme = () => document.documentElement.getAttribute('data-theme') || 'light';
+    if (typeof Worker === 'undefined' || !canvas.transferControlToOffscreen) {
+      initShader(canvas, getViewport(), getTheme());
+      return;
+    }
+    let worker;
+    let fellBack = false;
+    const resize = () => worker.postMessage({ type: 'resize', viewport: getViewport() });
+    const theme = () => worker.postMessage({ type: 'theme', theme: getTheme() });
+    const visibility = () => worker.postMessage({ type: 'visibility', hidden: document.hidden });
+    const fallback = () => {
+      if (fellBack) return;
+      fellBack = true;
+      if (worker) worker.terminate();
+      window.removeEventListener('resize', resize);
+      window.removeEventListener('themechange', theme);
+      document.removeEventListener('visibilitychange', visibility);
+      // A transferred canvas cannot regain its context; preserve all DOM attributes.
+      const replacement = canvas.cloneNode(true);
+      canvas.replaceWith(replacement);
+      canvas = replacement;
+      initShader(canvas, getViewport(), getTheme());
+    };
+    try {
+      worker = new Worker('shader-bg.js');
+      worker.onerror = (event) => { event.preventDefault(); fallback(); };
+      worker.onmessage = ({ data }) => {
+        if (data.type === 'fallback') fallback();
+        if (data.type === 'ready') { resize(); theme(); visibility(); }
+      };
+      const offscreen = canvas.transferControlToOffscreen();
+      worker.postMessage({ type: 'init', canvas: offscreen, viewport: getViewport(), theme: getTheme() }, [offscreen]);
+      window.addEventListener('resize', resize);
+      window.addEventListener('themechange', theme);
+      document.addEventListener('visibilitychange', visibility);
+    } catch (error) { fallback(); }
+  }
+
+  if (isWorker) {
+    self.addEventListener('message', ({ data }) => {
+      if (data.type === 'init') {
+        initShader(data.canvas, data.viewport, data.theme).catch(() => self.postMessage({ type: 'fallback' }));
+      }
+    });
+  } else {
+    document.addEventListener('DOMContentLoaded', startShader);
+  }
 })();
 
